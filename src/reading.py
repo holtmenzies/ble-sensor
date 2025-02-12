@@ -4,9 +4,8 @@ from numpy import sqrt
 
 # Threshold for starting a new reading for max velocity (in Gs)
 G_THRESHOLD = 1.2
-
 # max time to wait to end a rep in nano seconds
-REP_DELAY = 5e9 
+MOVEMENT_DELAY = 1e9 
 # Number of readings to save before a movement is detected
 BUFFER_SIZE = 20
 
@@ -14,13 +13,13 @@ class Reading:
     def __init__(self):
         """
         Initialize a new set of readings. This represents on set of sensor
-        readings from start to finsish. Data is stored as a dictionary with a 
+        readings from start to finish. Data is stored as a dictionary with a 
         key for each axis from each sensor and a key for timestamp
         """
         self.record = False # boolean should record incoming data
         self.last_movment = None # boolean movement detected
         self.update = False # boolean ok to return results or not
-        self.queue = dict(
+        self.buffer = dict(
             ax = deque(maxlen = BUFFER_SIZE),
             ay = deque(maxlen = BUFFER_SIZE),
             az = deque(maxlen = BUFFER_SIZE),
@@ -54,13 +53,13 @@ class Reading:
         - gz: z axis gyroscope reading
         - gr: gyroscope time stamp
         """        
-        self.queue["ax"].append(ax)
-        self.queue["ay"].append(ay)
-        self.queue["az"].append(az)
-        self.queue["gx"].append(gx)
-        self.queue["gy"].append(gy)
-        self.queue["gz"].append(gz)
-        self.queue["tr"].append(ar)
+        self.buffer["ax"].append(ax)
+        self.buffer["ay"].append(ay)
+        self.buffer["az"].append(az)
+        self.buffer["gx"].append(gx)
+        self.buffer["gy"].append(gy)
+        self.buffer["gz"].append(gz)
+        self.buffer["tr"].append(ar)
         
 
     def add_data(self, ax, ay, az, ar, gx, gy, gz):
@@ -89,7 +88,7 @@ class Reading:
     def listen(self, ax, ay, az, ar, gx, gy, gz):
         """
         Monitor incoming sensor data, if a movement has been detected or if 
-        the max delay has not been exceeced continue recording
+        the max delay has not been exceeded continue recording
         
         # Parameters
         - ax: x axis of accelerometer
@@ -102,11 +101,11 @@ class Reading:
         if has_movment:
             self.last_movment = curr
         # check that last_movment has been initialized
-        if self.last_movment != None and curr - self.last_movment < REP_DELAY:
-            if len(self.queue["ax"]) > 0: # empty the buffer before writing new sensor data
-                for k in self.queue.keys():
-                    self.readings[k] = [x for x in self.queue[k]]
-                    self.queue[k].clear()
+        if self.last_movment != None and curr - self.last_movment < MOVEMENT_DELAY:
+            if len(self.buffer["ax"]) > 0: # empty the buffer before writing new sensor data
+                for k in self.buffer.keys():
+                    self.readings[k] = [x for x in self.buffer[k]]
+                    self.buffer[k].clear()
             self.record = True
         else:
             if self.last_movment != None:
@@ -145,7 +144,7 @@ class Reading:
             gz = [],
             tr = []
         )
-        self.queue = dict(
+        self.buffer = dict(
             ax = deque(maxlen = BUFFER_SIZE),
             ay = deque(maxlen = BUFFER_SIZE),
             az = deque(maxlen = BUFFER_SIZE),

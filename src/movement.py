@@ -3,10 +3,6 @@ import time
 from numpy import diff, sqrt
 from collections import deque
 
-# Ratio of G's to m/s
-G_RATIO = 9.807
-
-
 class Movement:
     def __init__(self, time_units = 0.001):
         """
@@ -16,7 +12,6 @@ class Movement:
         # Parameters
         - time_units: units measured by time stamp (tr) from bluetooth device
         defaults to microseconds (1/1000)
-        - alpha: how heavily to weight the gyroscope data for estimation
         """
         if time_units <= 0:
             raise ValueError("time_units must be a positive value")
@@ -26,7 +21,7 @@ class Movement:
 
     def set_current(self, readings):
         """
-        Creates an array containing the velocity for each set of sensor
+        Creates a dataframe for each set of sensor
         readings. This will then update the current field. 
         
         # Parameters
@@ -43,5 +38,7 @@ class Movement:
             sqrt(x["ax"]**2 + x["ay"]**2 + x["az"]**2),
             axis = 1
             )
-        self.current["Total Acceleration"] * G_RATIO # convert to m/s2
+        # Remove gravity from the reading
+        self.current["Total Acceleration"] = self.current["Total Acceleration"] - 1
+        
         self.prev_max.append((self.current["Total Acceleration"].max()))

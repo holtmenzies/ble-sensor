@@ -3,13 +3,13 @@ import struct
 from bleak import BleakClient, BleakScanner
 
 import streamlit as st
-from altair import Chart, Y
+from altair import Chart, Y, X
 
 from movement import Movement
 from reading import Reading
 
 st.set_page_config(
-    page_title="Vertical Velocity",
+    page_title="Sensor Acceleration",
     layout="wide"
 )
 
@@ -20,7 +20,7 @@ DEVICE_NAME = "AccelerationMonitor"
 DATA_CHAR = "00001143-0000-1000-8000-00805f9b34fb"
 # Gyroscope Sensor Data
 GYRO_CHAR = "00001142-0000-1000-8000-00805f9b34fb"
-# Max / Min Value from Accelerometer
+# Max / Min Value to use for display of acceleration data
 ACCEL_MAX = 4
 # Delay - time between printing sensor readings to the console
 PRINT_DELAY = 0.5
@@ -34,7 +34,7 @@ def data_note_handler(sender, data):
 
     # Parameters
     - sender: UUID of sender of data
-    - data: notifcation data to process
+    - data: notification data to process
     """
     ax, ay, az, ar, gx, gy, gz, gr = struct.unpack('fffIfffI', data)
     re.listen(ax, ay, az, ar, gx, gy, gz)
@@ -71,30 +71,29 @@ async def run_ble_client(frame):
                 data_note_handler
             )
 
-            print("Recieving Data (Press Ctrl-C to stop)")
+            print("Receiving Data (Press Ctrl-C to stop)")
             while True:
                 di = re.get_data()
                 if di: 
                     mv.set_current(di)
                     with frame.container(): # fill out streamlit container
-
+                        st.markdown("# Incoming Sensor Data")
                         col = st.columns((3, 3), gap = 'medium')
                         with col[0]:
-                            st.markdown("## Total Acceleration")
                             st.metric(
                                 label = "Max Acceleration",
-                                value = f"{round(mv.prev_max[-1], 2)} m/s2",
-                                delta = round(mv.prev_max[-1] - mv.prev_max[-2])
+                                value = f"{round(mv.prev_max[-1], 2)} Gs",
+                                delta = round(mv.prev_max[-1] - mv.prev_max[-2], 1)
                             )
                                             
                             chart = Chart(mv.current).mark_line().encode(
-                                x = "td",
-                                y = Y("Total Acceleration (m/s2)").scale(domain = (0, ACCEL_MAX))
+                                x = X("td", title = "Time (s)"),
+                                y = Y("Total Acceleration", title = "Acceleration (Gs)").scale(domain = (-1, ACCEL_MAX))
                             )
                             st.altair_chart(chart, use_container_width=True)
 
                         with col[1]:
-                            st.markdown("## All Sensor Data")
+                            st.markdown("### Accelerometer and Gyroscope Data")
                             st.dataframe(mv.current)
 
                 await asyncio.sleep(PRINT_DELAY)
