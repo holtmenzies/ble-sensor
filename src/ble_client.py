@@ -43,10 +43,12 @@ def data_note_handler(sender, data):
 
 async def run_ble_client(frame):
     """
-    Establishes the BLE connection and saving sensor readings
+    Establishes the BLE connection updates current sensor readings, and updates
+    dashboard with most recent datazd
     
     # Parameters
-    - """
+    - frame: streamlit empty frame used to display sensor data
+    """
     print("Scanning...")
     device = None
     # scan for devices
